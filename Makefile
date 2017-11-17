@@ -65,7 +65,7 @@ install:
 	$(INSTALL) -d $(RPM_BUILD_ROOT)$(PREFIX)/share/doc
 	$(INSTALL) -d $(RPM_BUILD_ROOT)$(PREFIX)/share/doc/verynice-$(VERSION)
 	$(INSTALL) -d $(RPM_BUILD_ROOT)$(PREFIX)/share/doc/verynice-$(VERSION)/html
-	$(INSTALL) -m 644 verynice.html $(RPM_BUILD_ROOT)$(PREFIX)/share/doc/verynice-$(VERSION)/html
+	$(INSTALL) -m 644 docs/verynice.html $(RPM_BUILD_ROOT)$(PREFIX)/share/doc/verynice-$(VERSION)/html
 	$(INSTALL) -m 644 README $(RPM_BUILD_ROOT)$(PREFIX)/share/doc/verynice-$(VERSION)
 	$(INSTALL) -m 644 README.SYN $(RPM_BUILD_ROOT)$(PREFIX)/share/doc/verynice-$(VERSION)
 	$(INSTALL) -m 644 COPYING $(RPM_BUILD_ROOT)$(PREFIX)/share/doc/verynice-$(VERSION)

@@ -36,6 +36,7 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <asm/param.h>			/* get HZ */
 
 #include "linklist.h"
 
@@ -119,27 +120,18 @@ void
 huphandler(int signum)
 {
 	hupflag = 1;
-#ifdef TARGET_solaris			/* on Solaris, it seems you must reassert the signal handler */
-	signal(signum, huphandler);
-#endif
 }
 
 void
 dumphandler(int signum)
 {
 	dumpflag = 1;
-#ifdef TARGET_solaris			/* on Solaris, it seems you must reassert the signal handler */
-	signal(signum, dumphandler);
-#endif
 }
 
 void
 reconfighandler(int signum)
 {
 	reconfigflag = 1;
-#ifdef TARGET_solaris			/* on Solaris, it seems you must reassert the signal handler */
-	signal(signum, reconfighandler);
-#endif
 }
 
 double
@@ -227,10 +219,6 @@ finduid(uid_t uid)
 	}
 	return NULL;
 }
-
-#ifdef TARGET_linux
-
-#include <asm/param.h>			/* get HZ */
 
 void
 ReadProcs(struct List *Target)
@@ -368,73 +356,6 @@ ReadProcs(struct List *Target)
 	closedir(dir);
 }
 
-#endif /* TARGET_linux */
-
-#ifdef TARGET_solaris
-
-#include <procfs.h>				/* defines Solaris psinfo_t */
-
-void
-ReadProcs(struct List *Target)
-{
-	DIR *dir;
-	struct dirent *ent;
-	pid_t pid;
-	psinfo_t procinfo;
-	int nbytes;
-	struct procent *proc;
-	char *statfname;
-	int statf;
-	int Pos;
-
-	dir = opendir("/proc");
-	while (ent = readdir(dir)) {
-		for (Pos = 0; ent->d_name[Pos]; Pos++) {
-			if (!isdigit(ent->d_name[Pos]))
-				break;
-		}
-		if (!ent->d_name[Pos]) {
-			/* completely numeric file name -- this is a pid */
-			pid = (pid_t) strtoul(ent->d_name, NULL, 10);
-
-			/* read stat file */
-			statfname = malloc(6 + strlen(ent->d_name) + 1 + 6 + 1);
-			strcpy(statfname, "/proc/");
-			strcat(statfname, ent->d_name);
-			strcat(statfname, "/psinfo");
-			statf = open(statfname, O_RDONLY);
-			if (statf >= 0) {
-				nbytes = read(statf, &procinfo, sizeof (procinfo));
-				if (nbytes == sizeof (procinfo)) {
-					proc = CreateProc();
-					proc->pid = procinfo.pr_pid;
-					proc->nicelevel = procinfo.pr_lwp.pr_nice;
-					proc->reniced = 0;
-					proc->parentpid = procinfo.pr_ppid;
-					proc->cpuusage =
-						procinfo.pr_time.tv_sec +
-						((double)procinfo.pr_time.tv_nsec) / 1.e9;
-					proc->current_cpuusage = 0.0;
-					proc->badkarma = 0.0;
-					proc->uid = procinfo.pr_uid;
-					proc->immuneflag = 0;
-					proc->goodflag = 0;
-					proc->badflag = 0;
-					proc->potentialrunaway = 0;
-					proc->exename = strdup(procinfo.pr_fname);
-					procinsert(Target, proc);
-				}
-				close(statf);
-			}
-			free(statfname);
-
-		}
-	}
-	closedir(dir);
-}
-
-#endif /* TARGET_solaris */
-
 void
 updatecpuusage(void)
 {
@@ -500,15 +421,8 @@ MatchString(char *str, char *substr)
 int
 MatchExe(char *exe, char *pattern)
 {
-	if (pattern[0] == '/') {
-#ifdef TARGET_solaris
-		/* on solaris, we don't get the full path anyway, so we make the leading
-		 * slash trigger a precise comparison, but w/out the slash */
-		return !strcmp(exe, pattern + 1);
-#else
+	if (pattern[0] == '/')
 		return !strcmp(exe, pattern);
-#endif
-	}
 	else
 		return (MatchString(exe, pattern));
 }
@@ -820,13 +734,9 @@ ReniceProcs(double deltat)
 		errno = 0;
 		actualnicelevel = getpriority(PRIO_PROCESS, proc->pid);
 		if (errno) {
-#ifndef TARGET_solaris			/* on Solaris sometimes we end up seeing process groups
-								 * instead, or something, so this fails and starts
-								 * filling up the syslog */
 			syslog(LOG_WARNING,
 				   "Error reading process priority for pid %d: %m",
 				   (int)proc->pid);
-#endif
 			actualnicelevel = 0;
 		}
 		else {
@@ -978,7 +888,6 @@ performdump(void)
 	}
 }
 
-#ifdef TARGET_linux
 int
 CountCPUs(void)
 {
@@ -1001,19 +910,6 @@ CountCPUs(void)
 
 	return numcpus;
 }
-#endif /*TARGET_linux */
-
-#ifdef TARGET_solaris
-int
-CountCPUs(void)
-{
-	syslog(LOG_WARNING,
-		   "Can not detect number of CPU's on Solaris. Assuming 1\n");
-
-	return 1;
-}
-
-#endif /* TARGET_solaris */
 
 int
 main(int argc, char *argv[])
@@ -1097,12 +993,8 @@ main(int argc, char *argv[])
 	NewList(&uidlist);
 
 	/* open syslog */
-#ifdef TARGET_linux				/* LOG_PERROR is not standard */
 	openlog("verynice", (daemonpidfile == NULL) ? LOG_PERROR : 0,
 			LOG_DAEMON);
-#else
-	openlog("verynice", 0, LOG_DAEMON);
-#endif
 	syslog(LOG_WARNING, "starting up");
 
 	numprocessors = CountCPUs();

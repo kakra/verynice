@@ -5,5 +5,5 @@ Features
 
 Cleanups
 
- ☐ Remove Solaris-specific code
+ ✔ Remove Solaris-specific code @done (17-11-17 04:28)
  ☐ Remove dependency on proprietary config parser generator

@@ -29,8 +29,6 @@ TARGET=linux
 SYSTEMD_SYSTEM_UNIT_DIR ?= $(PREFIX)/lib
 
 INSTALL=install
-# Solaris users probably need to use this:
-#INSTALL=/usr/ucb/install
 
 VERSION=1.1.1
 

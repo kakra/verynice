@@ -1,0 +1,9 @@
+[Unit]
+Description=A tool for dynamically adjusting the nice-level of processes
+
+[Service]
+ExecStart=@@BINDIR@@/verynice
+ExecReload=/bin/kill -USR2 $MAINPID
+
+[Install]
+WantedBy=multi-user.target

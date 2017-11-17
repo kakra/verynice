@@ -26,6 +26,7 @@ BINDIR=$(PREFIX)/sbin
 ETCDIR=/etc
 TARGET=linux
 
+SYSTEMD_SYSTEM_UNIT_DIR ?= $(PREFIX)/lib
 
 INSTALL=install
 # Solaris users probably need to use this:
@@ -40,10 +41,11 @@ AG = /home3/sdh4/anagram/ag_unix_dev/ag
 
 
 
-all: verynice
+all: verynice scripts/verynice.service
 
 clean:
 	rm -f *.o *~ core
+	rm -f scripts/verynice.service
 
 distclean: clean
 	rm -f verynice
@@ -65,11 +67,13 @@ install:
 	$(INSTALL) -d $(RPM_BUILD_ROOT)$(PREFIX)/share/doc
 	$(INSTALL) -d $(RPM_BUILD_ROOT)$(PREFIX)/share/doc/verynice-$(VERSION)
 	$(INSTALL) -d $(RPM_BUILD_ROOT)$(PREFIX)/share/doc/verynice-$(VERSION)/html
+	$(INSTALL) -d $(RPM_BUILD_ROOT)$(SYSTEMD_SYSTEM_UNIT_DIR)
 	$(INSTALL) -m 644 docs/verynice.html $(RPM_BUILD_ROOT)$(PREFIX)/share/doc/verynice-$(VERSION)/html
 	$(INSTALL) -m 644 README $(RPM_BUILD_ROOT)$(PREFIX)/share/doc/verynice-$(VERSION)
 	$(INSTALL) -m 644 README.SYN $(RPM_BUILD_ROOT)$(PREFIX)/share/doc/verynice-$(VERSION)
 	$(INSTALL) -m 644 COPYING $(RPM_BUILD_ROOT)$(PREFIX)/share/doc/verynice-$(VERSION)
 	$(INSTALL) -m 644 CHANGELOG $(RPM_BUILD_ROOT)$(PREFIX)/share/doc/verynice-$(VERSION)
+	$(INSTALL) -m 644 scripts/verynice.service $(RPM_BUILD_ROOT)$(SYSTEMD_SYSTEM_UNIT_DIR)
 
 
 buildrpm:
@@ -86,6 +90,9 @@ postbuildrpm:
 
 %.c: %.syn
 	$(AG) -b $<
+
+%.service: %.service.in
+	sed -e 's#@@BINDIR@@#$(BINDIR)#g' $< >$@
 
 # convenience rule for analyzing a grammar
 anal.%: %.syn
